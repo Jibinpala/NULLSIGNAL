@@ -189,6 +189,7 @@ function App() {
       }
     };
 
+    const savedId = localStorage.getItem('TACTICAL_ID');
     const peerInstance = savedId ? new window.Peer(savedId, peerConfig) : new window.Peer(peerConfig);
     
     peerInstance.on('open', (id) => {
