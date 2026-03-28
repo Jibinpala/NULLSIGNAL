@@ -179,12 +179,32 @@ function App() {
       if (!salt) setIsFirstLaunch(true);
     });
 
-    const savedId = localStorage.getItem('TACTICAL_ID');
-    const peerInstance = savedId ? new window.Peer(savedId) : new window.Peer();
+    const peerConfig = {
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+        ]
+      }
+    };
+
+    const peerInstance = savedId ? new window.Peer(savedId, peerConfig) : new window.Peer(peerConfig);
     
     peerInstance.on('open', (id) => {
       setMyPeerId(id);
       localStorage.setItem('TACTICAL_ID', id);
+    });
+
+    peerInstance.on('error', (err) => {
+      console.error('Peer Error:', err.type);
+      if (err.type === 'peer-unavailable') {
+        showToast('SIGNAL FAILED: NODE NOT FOUND');
+      } else if (err.type === 'unavailable-id') {
+        showToast('ERROR: ID ALREADY ACTIVE');
+      } else {
+        showToast(`SIGNAL ERROR: ${err.type.toUpperCase()}`);
+      }
     });
     
     peerInstance.on('connection', (incomingConn) => handleConnection(incomingConn));
@@ -472,8 +492,20 @@ function App() {
   const connectToPeer = (id) => {
     const cid = id || targetId;
     if (!cid || !peer) return;
-    const outgoingConn = peer.connect(cid);
+    
+    showToast('INITIATING SIG-LINK...');
+    const outgoingConn = peer.connect(cid, {
+      reliable: true
+    });
+    
     handleConnection(outgoingConn);
+    
+    // Fallback if no response
+    setTimeout(() => {
+       if (!conn || !conn.open) {
+          // Check if we still don't have a connection
+       }
+    }, 5000);
   };
 
   const [scannerType, setScannerType] = useState('menu'); // menu, qr, bt
